@@ -111,10 +111,23 @@ class User(UserMixin, db.Model):
             if self.role is None:
                 self.role = Role.query.filter_by(default=True).first()
 
+    @property
+    def followed_posts(self):
+        return Post.query.join(Follow, Follow.followed_id == Post.author_id) \
+            .filter(Follow.follower_id == self.id)
+
     def follow(self, user):
         if not self.is_following(user):
             f = Follow(followed=user)
             self.followed.append(f)
+
+    @staticmethod
+    def add_self_follows():
+        for u in User.query.all():
+            if not u.is_following(u):
+                u.follow(u)
+                db.session.add(u)
+                db.session.commit()
 
     def unfollow(self, user):
         f = self.followed.filter_by(followed_id=user.id).first()
