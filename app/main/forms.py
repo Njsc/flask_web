@@ -20,3 +20,6 @@ class PostForm(FlaskForm):
     title = StringField('Title', validators=[DataRequired(), Length(1, 64)])
     body = PageDownField('Body', validators=[DataRequired()])
     submit = SubmitField('Submit')
+class CommentForm(FlaskForm):
+    body = StringField('',validators=[DataRequired()])
+    submit = SubmitField('comment')

@@ -15,6 +15,7 @@ class Config:
     FLASKY_MAIL_SENDER = '18351993266@163.com'
     FLASK_ADMIN = '18351993266@163.com'
     FLASKY_POSTS_PER_PAGE = 3
+    FLASKY_COMMENTS_PER_PAGE = 3
 
     @staticmethod
     def init_app(app):

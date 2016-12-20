@@ -1,7 +1,7 @@
 from . import bp
-from forms import UserForm, EditProfileForm, PostForm
+from forms import UserForm, EditProfileForm, PostForm, CommentForm
 from flask import render_template, redirect, session, url_for, current_app, abort, flash, request, make_response
-from ..models import db, User, Permission, Post
+from ..models import db, User, Permission, Post, Comment
 from datetime import datetime
 from ..email import send_email
 from flask_login import login_required, current_user
@@ -33,13 +33,15 @@ def index():
 @bp.route('/all')
 def show_all():
     resp = make_response(redirect(url_for('.index')))
-    resp.set_cookie('show_followed','',max_age=30*24*60*60)
+    resp.set_cookie('show_followed', '', max_age=30 * 24 * 60 * 60)
     return resp
+
+
 @bp.route('/followed')
 @login_required
 def show_followed():
     resp = make_response(redirect(url_for('.index')))
-    resp.set_cookie('show_followed','1',max_age=30*24*60*60)
+    resp.set_cookie('show_followed', '1', max_age=30 * 24 * 60 * 60)
     return resp
 
 
@@ -97,10 +99,22 @@ def edit_profile():
     return render_template('edit_profile.html', form=form)
 
 
-@bp.route('/post/<int:id>')
+@bp.route('/post/<int:id>', methods=['GET', 'POST'])
 def post(id):
     post = Post.query.get_or_404(id)
-    return render_template('post.html', posts=[post])
+    form = CommentForm()
+    if form.validate_on_submit():
+        comment = Comment(body=form.body.data, post=post, author=current_user._get_current_object())
+        db.session.add(comment)
+        flash('You have published your comment')
+        return redirect(url_for('.post', id=post.id, page=-1))
+    page = request.args.get('page', 1, type=int)
+    if page == -1:
+        page = (post.comments.count() - 1) / current_app.config['FLASKY_COMMENTS_PER_PAGE'] + 1
+    pagination = post.comments.order_by(Comment.timestamp.asc()).paginate(page, per_page=current_app.config[
+        'FLASKY_COMMENTS_PER_PAGE'], error_out=False)
+    comments = pagination.items
+    return render_template('post.html', posts=[post], form=form, comments=comments, pagination=pagination)
 
 
 @bp.route('/edit/<int:id>', methods=['GET', 'POST'])
